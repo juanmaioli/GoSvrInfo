@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var Version = "v0.2.0"
+var Version = "v0.2.1"
 
 type DiskSpace struct {
 	Name string `json:"name"`
@@ -357,26 +357,67 @@ func getOSInfo() OperatingSystem {
 		osInfo.KernelVersion = charsToByte(uname.Release)
 	}
 
-	file, err := os.Open("/etc/os-release")
-	if err == nil {
-		defer file.Close()
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := scanner.Text()
-			parts := strings.SplitN(line, "=", 2)
-			if len(parts) == 2 {
-				key := parts[0]
-				val := strings.Trim(parts[1], `"`)
-				if key == "NAME" && osInfo.Name == "Linux" {
-					osInfo.Name = val
-				} else if key == "VERSION" {
-					osInfo.Version = val
+	osReleasePaths := []string{
+		"/etc/os-release",
+		"/usr/lib/os-release",
+		"/data/data/com.termux/files/usr/etc/os-release",
+	}
+
+	foundOS := false
+	for _, p := range osReleasePaths {
+		file, err := os.Open(p)
+		if err == nil {
+			defer file.Close()
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				line := scanner.Text()
+				parts := strings.SplitN(line, "=", 2)
+				if len(parts) == 2 {
+					key := parts[0]
+					val := strings.Trim(parts[1], `"`)
+					if key == "NAME" && osInfo.Name == "Linux" {
+						osInfo.Name = val
+						foundOS = true
+					} else if key == "VERSION" {
+						osInfo.Version = val
+					}
+				}
+			}
+			break
+		}
+	}
+
+	// Si no se encontró os-release, intentar detectar Android
+	if !foundOS {
+		if file, err := os.Open("/system/build.prop"); err == nil {
+			defer file.Close()
+			osInfo.Name = "Android"
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if strings.HasPrefix(line, "ro.build.version.release=") {
+					osInfo.Version = strings.TrimPrefix(line, "ro.build.version.release=")
 				}
 			}
 		}
 	}
 
 	return osInfo
+}
+
+// findExecutablePath busca un binario en PATH usando exclusivamente os.Stat
+// para evitar invocar syscalls restringidas por seccomp como faccessat2 en Android.
+func findExecutablePath(name string) string {
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if dir == "" {
+			continue
+		}
+		path := filepath.Join(dir, name)
+		if fi, err := os.Stat(path); err == nil && !fi.IsDir() && fi.Mode()&0111 != 0 {
+			return path
+		}
+	}
+	return ""
 }
 
 func getGPUInfo() GPUInfo {
@@ -386,39 +427,72 @@ func getGPUInfo() GPUInfo {
 		Memory:        "N/A",
 	}
 
-	// 1. Probar nvidia-smi
-	cmd := exec.Command("nvidia-smi", "--query-gpu=name,driver_version,memory.total", "--format=csv,noheader,nounits")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err := cmd.Run(); err == nil {
-		fields := strings.Split(strings.TrimSpace(out.String()), ",")
-		if len(fields) >= 3 {
-			gpu.Name = strings.TrimSpace(fields[0])
-			gpu.DriverVersion = strings.TrimSpace(fields[1])
-			memMB, err := strconv.ParseUint(strings.TrimSpace(fields[2]), 10, 64)
-			if err == nil {
-				gpu.Memory = formatBytes(memMB * 1024 * 1024)
-			} else {
-				gpu.Memory = strings.TrimSpace(fields[2]) + " MB"
+	// 1. Probar nvidia-smi con ruta absoluta para evitar exec.LookPath
+	if nvsmi := findExecutablePath("nvidia-smi"); nvsmi != "" {
+		cmd := exec.Command(nvsmi, "--query-gpu=name,driver_version,memory.total", "--format=csv,noheader,nounits")
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		if err := cmd.Run(); err == nil {
+			fields := strings.Split(strings.TrimSpace(out.String()), ",")
+			if len(fields) >= 3 {
+				gpu.Name = strings.TrimSpace(fields[0])
+				gpu.DriverVersion = strings.TrimSpace(fields[1])
+				memMB, err := strconv.ParseUint(strings.TrimSpace(fields[2]), 10, 64)
+				if err == nil {
+					gpu.Memory = formatBytes(memMB * 1024 * 1024)
+				} else {
+					gpu.Memory = strings.TrimSpace(fields[2]) + " MB"
+				}
+				return gpu
 			}
+		}
+	}
+
+	// 2. Probar lspci directamente con ruta absoluta y filtrado en Go (sin subshell ni pipes)
+	if lspci := findExecutablePath("lspci"); lspci != "" {
+		cmd := exec.Command(lspci)
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		if err := cmd.Run(); err == nil {
+			scanner := bufio.NewScanner(&out)
+			for scanner.Scan() {
+				line := scanner.Text()
+				lower := strings.ToLower(line)
+				if strings.Contains(lower, "vga") || strings.Contains(lower, "3d") || strings.Contains(lower, "display") {
+					idx := strings.Index(line, ": ")
+					if idx != -1 {
+						gpu.Name = strings.TrimSpace(line[idx+2:])
+					} else {
+						gpu.Name = line
+					}
+					return gpu
+				}
+			}
+		}
+	}
+
+	// 3. Fallback para SoC / ARM / Android (Adreno, Mali, fb)
+	if data, err := os.ReadFile("/sys/class/kgsl/kgsl-3d0/gpu_model"); err == nil {
+		model := strings.TrimSpace(string(data))
+		if model != "" {
+			gpu.Name = model
 			return gpu
 		}
 	}
 
-	// 2. Si no hay nvidia-smi, chequear drm / lspci
-	pciCmd := exec.Command("sh", "-c", "lspci | grep -i 'vga\\|3d\\|display'")
-	var pciOut bytes.Buffer
-	pciCmd.Stdout = &pciOut
-	if err := pciCmd.Run(); err == nil && len(pciOut.String()) > 0 {
-		lines := strings.Split(strings.TrimSpace(pciOut.String()), "\n")
-		if len(lines) > 0 {
-			line := lines[0]
-			idx := strings.Index(line, ": ")
-			if idx != -1 {
-				gpu.Name = strings.TrimSpace(line[idx+2:])
-			} else {
-				gpu.Name = line
-			}
+	if data, err := os.ReadFile("/sys/class/misc/mali0/device/gpuinfo"); err == nil {
+		model := strings.TrimSpace(string(data))
+		if model != "" {
+			gpu.Name = model
+			return gpu
+		}
+	}
+
+	if data, err := os.ReadFile("/sys/class/graphics/fb0/name"); err == nil {
+		name := strings.TrimSpace(string(data))
+		if name != "" && name != "dummy" {
+			gpu.Name = name
+			return gpu
 		}
 	}
 

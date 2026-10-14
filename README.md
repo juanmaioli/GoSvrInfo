@@ -18,7 +18,7 @@ Desarrollada **100% con la biblioteca estándar de Go**, sin librerías externas
 * **Almacenamiento:** Particiones y discos físicos montados con tamaño total y espacio libre.
 * **Red:** Interfaces activas con dirección MAC e IP local asignada.
 * **Sistema Operativo:** Distribución Linux, versión y release del kernel.
-* **GPU:** Detección de aceleradoras NVIDIA (`nvidia-smi`) o adaptadores gráficos vía PCI/DRM.
+* **GPU:** Detección de NVIDIA (`nvidia-smi`), adaptadores PCI (`lspci`) o SoCs ARM/Android (Adreno, Mali, fb).
 
 ---
 
@@ -29,9 +29,14 @@ Desarrollada **100% con la biblioteca estándar de Go**, sin librerías externas
 go build -o gosvrinfo main.go
 ```
 
-### Compilación estática (portátil para cualquier Linux)
+### Compilación estática x86_64
 ```bash
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o gosvrinfo main.go
+```
+
+### Compilación estática ARM64 / AArch64 (Raspberry Pi, VPS ARM, Android/Termux)
+```bash
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o gosvrinfo-arm64 main.go
 ```
 
 ### Instalación en el sistema
