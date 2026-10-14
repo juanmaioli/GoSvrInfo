@@ -2,6 +2,11 @@
   "time":"linux_time",
   "system_uptime": "linux_time",
   "hostname": "example.com",
+  "operating_system": {
+    "name": "Ubuntu",
+    "version": "20.04 LTS",
+    "kernel_version": "5.4.0-42-generic"
+  },
   "ip_public_address": "181.27.250.202",
   "city": "New York",
   "country": "USA",
@@ -15,6 +20,11 @@
   "cpu_usage": "15%",
   "RAM": "16 GB",
   "ram_usage": "45%",
+  "GPU": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "driver_version": "460.39",
+    "memory": "8 GB"
+  },
   "disk_space": [{"name":"sda","size":"500 GB","free":"300 GB"},{"name":"sdb","size":"1 TB","free":"400 GB"}],
   "network_interfaces": [
     {
@@ -22,15 +32,5 @@
       "mac_address": "00:1A:2B:3C:4D:5E",
       "ip_address": "192.168.1.100"
     }
-  ],
-  "operating_system": {
-    "name": "Ubuntu",
-    "version": "20.04 LTS",
-    "kernel_version": "5.4.0-42-generic"
-  },
-  "GPU": {
-    "name": "NVIDIA GeForce GTX 1080",
-    "driver_version": "460.39",
-    "memory": "8 GB"
-  }
+  ]
 }

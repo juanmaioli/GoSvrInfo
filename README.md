@@ -50,6 +50,11 @@ Al ejecutar `gosvrinfo`, genera una salida JSON estándar por pantalla:
   "time": 1791888288,
   "system_uptime": 1683260,
   "hostname": "AramisWks",
+  "operating_system": {
+    "name": "Debian GNU/Linux",
+    "version": "13 (trixie)",
+    "kernel_version": "6.12.100+deb13-amd64"
+  },
   "ip_public_address": "181.27.250.202",
   "city": "Neuquén",
   "country": "Argentina",
@@ -63,6 +68,11 @@ Al ejecutar `gosvrinfo`, genera una salida JSON estándar por pantalla:
   "cpu_usage": "3%",
   "RAM": "31 GB",
   "ram_usage": "36%",
+  "GPU": {
+    "name": "NVIDIA GeForce GTX 1050",
+    "driver_version": "550.163.01",
+    "memory": "2 GB"
+  },
   "disk_space": [
     {
       "name": "nvme0n1p2",
@@ -76,16 +86,6 @@ Al ejecutar `gosvrinfo`, genera una salida JSON estándar por pantalla:
       "mac_address": "b4:2e:99:f4:15:f3",
       "ip_address": "172.21.5.5"
     }
-  ],
-  "operating_system": {
-    "name": "Debian GNU/Linux",
-    "version": "13 (trixie)",
-    "kernel_version": "6.12.100+deb13-amd64"
-  },
-  "GPU": {
-    "name": "NVIDIA GeForce GTX 1050",
-    "driver_version": "550.163.01",
-    "memory": "2 GB"
-  }
+  ]
 }
 ```

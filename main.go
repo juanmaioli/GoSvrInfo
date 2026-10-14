@@ -41,26 +41,26 @@ type GPUInfo struct {
 }
 
 type HostInfo struct {
-	Time             int64              `json:"time"`
-	SystemUptime     int64              `json:"system_uptime"`
-	Hostname         string             `json:"hostname"`
-	IPPublicAddress  string             `json:"ip_public_address"`
-	City             string             `json:"city"`
-	Country          string             `json:"country"`
-	Latitude         float64            `json:"latitude"`
-	Longitude        float64            `json:"longitude"`
-	Timezone         string             `json:"timezone"`
-	ISP              string             `json:"isp"`
-	CPU              string             `json:"CPU"`
-	Cores            int                `json:"cores"`
-	CPUSpeed         string             `json:"cpu_speed"`
-	CPUUsage         string             `json:"cpu_usage"`
-	RAM              string             `json:"RAM"`
-	RAMUsage         string             `json:"ram_usage"`
-	DiskSpace        []DiskSpace        `json:"disk_space"`
+	Time              int64              `json:"time"`
+	SystemUptime      int64              `json:"system_uptime"`
+	Hostname          string             `json:"hostname"`
+	OperatingSystem   OperatingSystem    `json:"operating_system"`
+	IPPublicAddress   string             `json:"ip_public_address"`
+	City              string             `json:"city"`
+	Country           string             `json:"country"`
+	Latitude          float64            `json:"latitude"`
+	Longitude         float64            `json:"longitude"`
+	Timezone          string             `json:"timezone"`
+	ISP               string             `json:"isp"`
+	CPU               string             `json:"CPU"`
+	Cores             int                `json:"cores"`
+	CPUSpeed          string             `json:"cpu_speed"`
+	CPUUsage          string             `json:"cpu_usage"`
+	RAM               string             `json:"RAM"`
+	RAMUsage          string             `json:"ram_usage"`
+	GPU               GPUInfo            `json:"GPU"`
+	DiskSpace         []DiskSpace        `json:"disk_space"`
 	NetworkInterfaces []NetworkInterface `json:"network_interfaces"`
-	OperatingSystem  OperatingSystem    `json:"operating_system"`
-	GPU              GPUInfo            `json:"GPU"`
 }
 
 type IPApiResponse struct {
@@ -459,6 +459,7 @@ func main() {
 		Time:              now,
 		SystemUptime:      uptime,
 		Hostname:          hostname,
+		OperatingSystem:   osInfo,
 		IPPublicAddress:   geo.Query,
 		City:              geo.City,
 		Country:           geo.Country,
@@ -472,10 +473,9 @@ func main() {
 		CPUUsage:          cpuUsage,
 		RAM:               ramTotal,
 		RAMUsage:          ramUsage,
+		GPU:               gpuInfo,
 		DiskSpace:         disks,
 		NetworkInterfaces: netIfaces,
-		OperatingSystem:   osInfo,
-		GPU:               gpuInfo,
 	}
 
 	jsonBytes, err := json.MarshalIndent(host, "", "  ")
