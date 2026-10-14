@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -15,6 +16,8 @@ import (
 	"syscall"
 	"time"
 )
+
+var Version = "v0.2.0"
 
 type DiskSpace struct {
 	Name string `json:"name"`
@@ -441,6 +444,16 @@ func getGeoAndPublicIP() IPApiResponse {
 }
 
 func main() {
+	var showVersion bool
+	flag.BoolVar(&showVersion, "v", false, "Muestra la versión actual")
+	flag.BoolVar(&showVersion, "version", false, "Muestra la versión actual")
+	flag.Parse()
+
+	if showVersion || (len(os.Args) > 1 && os.Args[1] == "version") {
+		fmt.Println(Version)
+		return
+	}
+
 	now := time.Now().Unix()
 	uptime := getUptime()
 

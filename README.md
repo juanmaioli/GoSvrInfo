@@ -41,7 +41,21 @@ sudo install -m 755 gosvrinfo /usr/local/bin/gosvrinfo
 
 ---
 
-## 3. 📋 Ejemplo de Salida
+## 3. 💻 Uso
+
+### Consultar información del sistema (JSON)
+```bash
+./gosvrinfo
+```
+
+### Consultar versión
+```bash
+./gosvrinfo -v
+```
+
+---
+
+## 4. 📋 Ejemplo de Salida
 
 Al ejecutar `gosvrinfo`, genera una salida JSON estándar por pantalla:
 
